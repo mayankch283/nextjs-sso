@@ -1,0 +1,83 @@
+{
+  "mfa": {
+    "enabled": false,
+    "otp": {
+      "length": 6,
+      "expiryInMinutes": 20
+    }
+  },
+  "authentication": {
+    "accessToken": {
+      "expiryInMinutes": 60
+    },
+    "refreshToken": {
+      "expiryInMinutes": 1440
+    }
+  },
+  "registeration": {
+    "emailVerification": {
+      "required": false,
+      "expiryInMinutes": 525600,
+      "otpLength": 6
+    }
+  },
+  "validations": {
+    "password": [
+      {
+        "regex": "^(?=.{8,256}$)",
+        "message": "Password must be between 8 and 256 characters",
+        "error": "passwordLengthError"
+      },
+      {
+        "regex": "^\\S*$",
+        "message": "Password must not contain any spaces",
+        "error": "spaceCharacterError"
+      },
+      {
+        "regex": "^(?=.*[a-z])",
+        "message": "Password must contain at least one lowercase letter",
+        "error": "passwordLowercaseError"
+      },
+      {
+        "regex": "^(?=.*[a-zA-Z0-9~!.@#$%^&*<>,._+=])",
+        "message": "Password must contain only alphanumeric and special characters ~!.@#$%^&*<>,._+=",
+        "error": "invalidCharacterError"
+      },
+      {
+        "regex": "^(?=.*[A-Z])",
+        "message": "Password must contain at least one uppercase letter",
+        "error": "passwordUppercaseError"
+      },
+      {
+        "regex": "^(?=.*[0-9])",
+        "message": "Password must contain at least one number",
+        "error": "passwordNumberError"
+      },
+      {
+        "regex": "^(?=.*[~!.@#$%^&*<>,._+=])",
+        "message": "Password must contain at least one special character",
+        "error": "passwordSpecialCharacterError"
+      }
+    ],
+    "username": [
+      {
+        "regex": "^(?=.{3,30}$)",
+        "message": "Username must be between 3 and 30 characters",
+        "error": "usernameLengthError"
+      },
+      {
+        "regex": "^\\S*$",
+        "message": "Username must not contain any spaces",
+        "error": "spaceCharacterError"
+      },
+      {
+        "regex": "^(?=.*[a-zA-Z0-9])",
+        "message": "Username must contain only alphanumeric characters",
+        "error": "invalidCharacterError"
+      }
+    ]
+  },
+  "other": {
+    "cookie-name": "token"
+  }
+}
