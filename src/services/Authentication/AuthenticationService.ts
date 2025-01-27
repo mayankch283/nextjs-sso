@@ -27,12 +27,15 @@ export class AuthenticationService {
     password: string
   ) => {
     try {
+      console.log("Starting user registration process...");
+
       if (!email && !phoneNumber) {
         throw new Error(Errors.PHONE_OR_EMAIL_REQUIRED.message);
       }
 
       // Check if email exists (if provided)
       if (email) {
+        console.log("Checking for existing email...");
         const userByEmail = await User.findOne({ email });
         if (userByEmail) {
           throw new Error(Errors.USER_ALREADY_EXISTS.message);
@@ -41,15 +44,18 @@ export class AuthenticationService {
 
       // Check if phone exists (if provided)
       if (phoneNumber) {
+        console.log("Checking for existing phone number...");
         const userByPhone = await User.findOne({ phoneNumber });
         if (userByPhone) {
           throw new Error(Errors.PHONE_ALREADY_EXISTS.message);
         }
       }
 
+      console.log("Hashing password...");
       const salt = await Helpers.salt(10);
       const hashedPassword = await Helpers.hash(password, salt);
 
+      console.log("Creating new user...");
       const newUser = new User({
         firstName,
         lastName,
@@ -60,12 +66,15 @@ export class AuthenticationService {
         mfa_enabled: config.mfa.enabled,
       });
 
+      console.log("Saving user to database...");
       const savedUser = await newUser.save();
+
       const otp = Helpers.generateOtp(
         config.registeration.emailVerification.otpLength
       );
 
       if (email) {
+        console.log("Updating user with email verification OTP...");
         await User.findByIdAndUpdate(savedUser._id, {
           emailVerificationOTP: otp,
           verificationOTPExpiry:
@@ -74,6 +83,7 @@ export class AuthenticationService {
         });
         await this.mailer.sendVerificationOTPEmail(email, otp);
       } else if (phoneNumber) {
+        console.log("Updating user with phone verification OTP...");
         await User.findByIdAndUpdate(savedUser._id, {
           phoneVerificationOTP: otp,
           verificationOTPExpiry:
@@ -84,10 +94,13 @@ export class AuthenticationService {
       }
     } catch (e) {
       if (e instanceof Error) {
-        console.error(e.message, "while registering user");
+        console.error("Registration error:", {
+          message: e.message,
+          stack: e.stack,
+        });
         throw new Error(e.message);
       } else {
-        console.error("An unknown error occurred while registering user");
+        console.error("Unknown registration error:", e);
         throw new Error(Errors.UNKNOWN_ERROR.message);
       }
     }

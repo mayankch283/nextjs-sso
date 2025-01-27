@@ -127,6 +127,15 @@ export async function POST(request: NextRequest) {
     const { firstName, lastName, username, email, phoneNumber, password } =
       await request.json();
 
+    console.log("Signup attempt with:", {
+      firstName,
+      lastName,
+      username,
+      email,
+      phoneNumber,
+      // Don't log password
+    });
+
     if (!firstName || !lastName || !username || !password) {
       throw new Error(Errors.MISSING_FIELDS.message);
     }
@@ -151,6 +160,14 @@ export async function POST(request: NextRequest) {
     const invalidPassword = passwordRegex.find((r) => !r.regex.test(password));
     if (invalidPassword) throw new Error(invalidPassword.message);
 
+    if (phoneNumber) {
+      // Basic phone number validation - modify regex according to your needs
+      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        throw new Error(Errors.INVALID_PHONE_NUMBER.message);
+      }
+    }
+
     await authenticationService.registerUser(
       firstName,
       lastName,
@@ -168,7 +185,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (e) {
-    console.log(e);
+    console.error("Signup error:", e);
     let error = Helpers.FetchError(e as Error);
     return NextResponse.json(
       {

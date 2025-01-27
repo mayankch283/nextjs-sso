@@ -21,11 +21,15 @@ const userSchema = new mongoose.Schema(
       min: 6,
       sparse: true,
       unique: true,
+      index: true,
+      default: null,
     },
     phoneNumber: {
       type: String,
       sparse: true,
       unique: true,
+      index: true,
+      default: null,
     },
     password: {
       type: String,
@@ -69,6 +73,19 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  }
+);
+
+// Add compound index to ensure either email or phone is present
+userSchema.index(
+  { email: 1, phoneNumber: 1 },
+  {
+    partialFilterExpression: {
+      $or: [
+        { email: { $type: "string" } },
+        { phoneNumber: { $type: "string" } },
+      ],
+    },
   }
 );
 
