@@ -16,7 +16,7 @@
   },
   "registeration": {
     "emailVerification": {
-      "required": false,
+      "required": true,
       "expiryInMinutes": 525600,
       "otpLength": 6
     }

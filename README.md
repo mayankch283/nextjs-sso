@@ -42,6 +42,13 @@ This project is a boilerplate for user authentication and registration using Nex
    MAIL_USER=your-email@example.com
    MAIL_PASS=your-email-password
    MONGO_URL=mongodb://localhost:27017/your-database
+   TOKEN_SECRET=your-secret-key-here
+   ```
+
+   Make sure to use a strong, random string for your TOKEN_SECRET in production. You can generate one using a secure random generator or use a command like this in your terminal:
+
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    ```
 
 4. Start the development server:
