@@ -1,8 +1,8 @@
-import Errors from "@/common/errors";
-import { Helpers } from "@/helpers/Helpers";
-import { AuthenticationService } from "@/services/Authentication/AuthenticationService";
-import { NextRequest, NextResponse } from "next/server";
-import config from "@/../config/config.json";
+import Errors from '@/common/errors';
+import { Helpers } from '@/helpers/Helpers';
+import { AuthenticationService } from '@/services/Authentication/AuthenticationService';
+import { NextRequest, NextResponse } from 'next/server';
+import config from '@/../config/config.json';
 
 const authenticationService = new AuthenticationService();
 
@@ -10,6 +10,7 @@ const authenticationService = new AuthenticationService();
  * @swagger
  * /api/users/signup:
  *   post:
+ *     tags: [Signup]
  *     summary: Register a new user
  *     description: Creates a new user account with the provided information
  *     requestBody:
@@ -71,7 +72,78 @@ const authenticationService = new AuthenticationService();
  *                 message:
  *                   type: string
  *                   example: Missing input fields
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const { firstName, lastName, username, email, phoneNumber, password } =
+      await request.json();
+
+    if (!firstName || !lastName || !username || !password) {
+      throw new Error(Errors.MISSING_FIELDS.message);
+    }
+
+    if (!email && !phoneNumber) {
+      throw new Error(Errors.PHONE_OR_EMAIL_REQUIRED.message);
+    }
+
+    const usernameRegex = config.validations.username.map((item) => ({
+      regex: new RegExp(item.regex),
+      message: item.message,
+      error: item.error,
+    }));
+    const invalidUsername = usernameRegex.find((r) => !r.regex.test(username));
+    if (invalidUsername) throw new Error(invalidUsername.message);
+
+    const passwordRegex = config.validations.password.map((item) => ({
+      regex: new RegExp(item.regex),
+      message: item.message,
+      error: item.error,
+    }));
+    const invalidPassword = passwordRegex.find((r) => !r.regex.test(password));
+    if (invalidPassword) throw new Error(invalidPassword.message);
+
+    if (phoneNumber) {
+      // Basic phone number validation - modify regex according to your needs
+      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+      if (!phoneRegex.test(phoneNumber)) {
+        throw new Error(Errors.INVALID_PHONE_NUMBER.message);
+      }
+    }
+
+    await authenticationService.registerUser(
+      firstName,
+      lastName,
+      username,
+      email,
+      phoneNumber,
+      password,
+    );
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'User registered successfully',
+      },
+      { status: 201 },
+    );
+  } catch (e) {
+    console.error('Signup error:', e);
+    const error = Helpers.FetchError(e as Error);
+    return NextResponse.json(
+      {
+        success: false,
+        message: error.message,
+      },
+      { status: error.status },
+    );
+  }
+}
+
+/**
+ * @swagger
+ * /api/users/signup:
  *   patch:
+ *     tags: [Signup]
  *     summary: Verify user account
  *     description: Verifies user's email or phone number using OTP
  *     requestBody:
@@ -121,82 +193,6 @@ const authenticationService = new AuthenticationService();
  *                   type: string
  *                   example: Invalid OTP
  */
-
-export async function POST(request: NextRequest) {
-  try {
-    const { firstName, lastName, username, email, phoneNumber, password } =
-      await request.json();
-
-    console.log("Signup attempt with:", {
-      firstName,
-      lastName,
-      username,
-      email,
-      phoneNumber,
-      // Don't log password
-    });
-
-    if (!firstName || !lastName || !username || !password) {
-      throw new Error(Errors.MISSING_FIELDS.message);
-    }
-
-    if (!email && !phoneNumber) {
-      throw new Error(Errors.PHONE_OR_EMAIL_REQUIRED.message);
-    }
-
-    const usernameRegex = config.validations.username.map((item) => ({
-      regex: new RegExp(item.regex),
-      message: item.message,
-      error: item.error,
-    }));
-    const invalidUsername = usernameRegex.find((r) => !r.regex.test(username));
-    if (invalidUsername) throw new Error(invalidUsername.message);
-
-    const passwordRegex = config.validations.password.map((item) => ({
-      regex: new RegExp(item.regex),
-      message: item.message,
-      error: item.error,
-    }));
-    const invalidPassword = passwordRegex.find((r) => !r.regex.test(password));
-    if (invalidPassword) throw new Error(invalidPassword.message);
-
-    if (phoneNumber) {
-      // Basic phone number validation - modify regex according to your needs
-      const phoneRegex = /^\+?[1-9]\d{1,14}$/;
-      if (!phoneRegex.test(phoneNumber)) {
-        throw new Error(Errors.INVALID_PHONE_NUMBER.message);
-      }
-    }
-
-    await authenticationService.registerUser(
-      firstName,
-      lastName,
-      username,
-      email,
-      phoneNumber,
-      password
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "User registered successfully",
-      },
-      { status: 201 }
-    );
-  } catch (e) {
-    console.error("Signup error:", e);
-    let error = Helpers.FetchError(e as Error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
-      { status: error.status }
-    );
-  }
-}
-
 export async function PATCH(request: NextRequest) {
   try {
     const { email, phoneNumber, otp } = await request.json();
@@ -218,19 +214,19 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(
       {
-        status: "success",
-        message: "Account verified successfully",
+        status: 'success',
+        message: 'Account verified successfully',
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (e) {
-    let error = Helpers.FetchError(e as Error);
+    const error = Helpers.FetchError(e as Error);
     return NextResponse.json(
       {
-        status: "error",
+        status: 'error',
         message: error.message,
       },
-      { status: error.status }
+      { status: error.status },
     );
   }
 }

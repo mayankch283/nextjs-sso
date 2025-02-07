@@ -1,8 +1,8 @@
-import Errors from "@/common/errors";
-import { AuthenticationService } from "@/services/Authentication/AuthenticationService";
-import { NextRequest, NextResponse } from "next/server";
-import config from "@/../config/config.json";
-import { Helpers } from "@/helpers/Helpers";
+import Errors from '@/common/errors';
+import { AuthenticationService } from '@/services/Authentication/AuthenticationService';
+import { NextRequest, NextResponse } from 'next/server';
+import config from '@/../config/config.json';
+import { Helpers } from '@/helpers/Helpers';
 
 const authenticationService = new AuthenticationService();
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       username || null,
       email || null,
       phoneNumber || null,
-      password
+      password,
     );
 
     if (!user.token) {
@@ -89,26 +89,26 @@ export async function POST(request: NextRequest) {
 
     const response = NextResponse.json(
       {
-        message: "User logged in successfully",
+        message: 'User logged in successfully',
         success: true,
       },
-      { status: 200 }
+      { status: 200 },
     );
 
-    response.cookies.set(config.other["cookie-name"], user.token, {
+    response.cookies.set(config.other['cookie-name'], user.token, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: 'strict',
     });
 
     return response;
   } catch (e) {
-    let error = Helpers.FetchError(e as Error);
+    const error = Helpers.FetchError(e as Error);
     return NextResponse.json(
       {
         success: false,
         message: error.message,
       },
-      { status: error.status }
+      { status: error.status },
     );
   }
 }

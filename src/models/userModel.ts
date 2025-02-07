@@ -1,17 +1,16 @@
-import mongoose from "mongoose";
-import { unique } from "next/dist/build/utils";
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema(
   {
     firstName: {
       type: String,
-      required: [true, "Please enter your first name"],
+      required: [true, 'Please enter your first name'],
       min: 3,
       max: 255,
     },
     lastName: {
       type: String,
-      required: [true, "Please enter your last name"],
+      required: [true, 'Please enter your last name'],
       min: 3,
       max: 255,
     },
@@ -33,13 +32,13 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Please enter your password"],
+      required: [true, 'Please enter your password'],
       max: 1024,
       min: 5,
     },
     username: {
       type: String,
-      required: [true, "Please enter your username"],
+      required: [true, 'Please enter your username'],
       max: 255,
       min: 5,
       unique: true,
@@ -73,7 +72,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Add compound index to ensure either email or phone is present
@@ -82,13 +81,13 @@ userSchema.index(
   {
     partialFilterExpression: {
       $or: [
-        { email: { $type: "string" } },
-        { phoneNumber: { $type: "string" } },
+        { email: { $type: 'string' } },
+        { phoneNumber: { $type: 'string' } },
       ],
     },
-  }
+  },
 );
 
-const User = mongoose.models.users || mongoose.model("users", userSchema);
+const User = mongoose.models.users || mongoose.model('users', userSchema);
 
 export default User;
