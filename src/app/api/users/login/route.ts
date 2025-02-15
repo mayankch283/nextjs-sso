@@ -66,7 +66,8 @@ const authenticationService = new AuthenticationService();
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, email, phoneNumber, password } = await request.json();
+    const { username, email, phoneNumber, password, smsOtp, emailOtp } =
+      await request.json();
 
     if (!password) {
       throw new Error(Errors.PASSWORD_REQUIRED.message);
@@ -81,24 +82,35 @@ export async function POST(request: NextRequest) {
       email || null,
       phoneNumber || null,
       password,
+      smsOtp || null,
+      emailOtp || null,
     );
+
+    let response;
 
     if (!user.token) {
-      throw new Error(Errors.UNKNOWN_ERROR.message);
+      response = NextResponse.json(
+        {
+          message:
+            'User found kindly verify your email or phone number to login',
+          success: true,
+        },
+        { status: 200 },
+      );
+    } else {
+      response = NextResponse.json(
+        {
+          message: 'User logged in successfully',
+          success: true,
+        },
+        { status: 200 },
+      );
+
+      response.cookies.set(config.other['cookie-name'], user.token, {
+        httpOnly: true,
+        sameSite: 'strict',
+      });
     }
-
-    const response = NextResponse.json(
-      {
-        message: 'User logged in successfully',
-        success: true,
-      },
-      { status: 200 },
-    );
-
-    response.cookies.set(config.other['cookie-name'], user.token, {
-      httpOnly: true,
-      sameSite: 'strict',
-    });
 
     return response;
   } catch (e) {

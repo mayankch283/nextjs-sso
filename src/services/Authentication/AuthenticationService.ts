@@ -25,6 +25,7 @@ export class AuthenticationService {
     phoneNumber: string | null,
     password: string,
   ) => {
+    let userId: null | string = null;
     try {
       console.log('Starting user registration process...');
 
@@ -58,16 +59,19 @@ export class AuthenticationService {
         email,
         phoneNumber,
         password: hashedPassword,
-        mfa_enabled: config.mfa.enabled,
+        mfa_enabled: config.mfa.mfa_email || config.mfa.mfa_sms,
+        isEmailVerified: !config.registeration.emailVerification.required,
+        isPhoneVerified: !config.registeration.phoneVerification.required,
       });
 
       const savedUser = await newUser.save();
+      userId = savedUser._id;
 
       const otp = Helpers.generateOtp(
         config.registeration.emailVerification.otpLength,
       );
 
-      if (email) {
+      if (email && config.registeration.emailVerification.required) {
         await User.findByIdAndUpdate(savedUser._id, {
           emailVerificationOTP: otp,
           verificationOTPExpiry:
@@ -75,7 +79,10 @@ export class AuthenticationService {
             config.registeration.emailVerification.expiryInMinutes * 60 * 1000,
         });
         await this.mailer.sendVerificationOTPEmail(email, otp);
-      } else if (phoneNumber) {
+      } else if (
+        phoneNumber &&
+        config.registeration.phoneVerification.required
+      ) {
         await User.findByIdAndUpdate(savedUser._id, {
           phoneVerificationOTP: otp,
           verificationOTPExpiry:
@@ -83,8 +90,17 @@ export class AuthenticationService {
             config.registeration.emailVerification.expiryInMinutes * 60 * 1000,
         });
         await this.smsService.sendVerificationOTP(phoneNumber, otp);
+      } else if (
+        !config.registeration.emailVerification.required &&
+        !config.registeration.phoneVerification.required
+      ) {
+        savedUser.isActive = true;
+        savedUser.save();
       }
     } catch (e) {
+      if (userId) {
+        await this.deleteUser(userId);
+      }
       if (e instanceof Error) {
         throw new Error(e.message);
       } else {
@@ -99,6 +115,8 @@ export class AuthenticationService {
     email: string | null,
     phoneNumber: string | null,
     password: string,
+    smsOtp: string | null,
+    emailOtp: string | null,
   ) => {
     if (!username && !email && !phoneNumber) {
       throw new Error(Errors.USERNAME_OR_EMAIL_OR_PHONE_REQUIRED.message);
@@ -139,6 +157,8 @@ export class AuthenticationService {
         throw new Error(Errors.INACTIVATED_USER.message);
       }
 
+      console.log('User logged in successfully', emailOtp, smsOtp);
+
       const token = Helpers.generateToken({
         id: user._id,
         email: user.email,
@@ -175,7 +195,7 @@ export class AuthenticationService {
         throw new Error(Errors.OTP_EXPIRED.message);
       }
       user.isEmailVerified = true;
-      user.isActive = true;
+      if (user.phoneNumber && user.isPhoneVerified) user.isActive = true;
       await user.save();
     } catch (e) {
       if (e instanceof Error) {
@@ -204,7 +224,8 @@ export class AuthenticationService {
         throw new Error(Errors.OTP_EXPIRED.message);
       }
       user.isPhoneVerified = true;
-      user.isActive = true;
+      if (user.email && user.isEmailVerified) user.isActive = true;
+
       await user.save();
     } catch (e) {
       if (e instanceof Error) {
@@ -214,6 +235,17 @@ export class AuthenticationService {
         console.error('An unknown error occurred while verifying phone number');
         throw new Error(Errors.UNKNOWN_ERROR.message);
       }
+    }
+  };
+
+  deleteUser = async (userId: string) => {
+    try {
+      // Assuming you have a User model with a delete method
+      await User.findByIdAndDelete(userId);
+      console.log(`User with ID ${userId} has been deleted.`);
+    } catch (error) {
+      console.error(`Failed to delete user with ID ${userId}:`, error);
+      throw new Error(`Failed to delete user with ID ${userId}`);
     }
   };
 }
