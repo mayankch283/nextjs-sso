@@ -85,5 +85,18 @@
   },
   "other": {
     "cookie-name": "token"
+  },
+  "sso": {
+    "enabled": true,
+    "providers": {
+      "google": {
+        "enabled": true,
+        "clientId": "YOUR_GOOGLE_CLIENT_ID"
+      },
+      "github": {
+        "enabled": true,
+        "clientId": "YOUR_GITHUB_CLIENT_ID"
+      }
+    }
   }
 }
