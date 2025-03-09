@@ -66,7 +66,7 @@ const authenticationService = new AuthenticationService();
 
 export async function POST(request: NextRequest) {
   try {
-    const { username, email, phoneNumber, password, otp } =
+    const { username, email, phoneNumber, password, smsOtp, emailOtp } =
       await request.json();
 
     if (!password) {
@@ -82,12 +82,13 @@ export async function POST(request: NextRequest) {
       email || null,
       phoneNumber || null,
       password,
-      otp || null,
+      smsOtp || null,
+      emailOtp || null,
     );
 
     let response;
 
-    if (!user.accessToken || !user.refreshToken) {
+    if (!user.token) {
       response = NextResponse.json(
         {
           message:
@@ -100,13 +101,12 @@ export async function POST(request: NextRequest) {
       response = NextResponse.json(
         {
           message: 'User logged in successfully',
-          accessToken: user.accessToken,
           success: true,
         },
         { status: 200 },
       );
 
-      response.cookies.set(config.other['cookie-name'], user.refreshToken, {
+      response.cookies.set(config.other['cookie-name'], user.token, {
         httpOnly: true,
         sameSite: 'strict',
       });

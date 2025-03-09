@@ -1,5 +1,6 @@
 import bryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import config from '@/../config/config.json';
 import { jwtVerify } from 'jose';
 import Errors from '@/common/errors';
 import { DecodedTokenPayload, TokenPayload } from '@/common/types';
@@ -16,10 +17,10 @@ export class Helpers {
   static async compare(data: string, encrypted: string) {
     return await bryptjs.compare(data, encrypted);
   }
-  static generateToken(payload: TokenPayload, expiresIn?: number) {
+  static generateToken(payload: TokenPayload) {
     if (!tokenSecret) throw new Error(Errors.TOKEN_SECRET_NOT_DEFINED.message);
     return jwt.sign(payload, tokenSecret, {
-      expiresIn: expiresIn,
+      expiresIn: config.authentication.accessToken.expiryInMinutes * 60,
     });
   }
   static verifyToken(token: string): DecodedTokenPayload {

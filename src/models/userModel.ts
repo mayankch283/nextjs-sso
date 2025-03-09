@@ -68,8 +68,6 @@ const userSchema = new mongoose.Schema(
     emailVerificationOTP: String,
     phoneVerificationOTP: String,
     verificationOTPExpiry: Date,
-    mfa_otp: String,
-    mfa_expiry: Date,
     lastLogin: Date,
   },
   {

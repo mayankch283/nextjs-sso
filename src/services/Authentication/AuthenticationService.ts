@@ -67,10 +67,11 @@ export class AuthenticationService {
       const savedUser = await newUser.save();
       userId = savedUser._id;
 
+      const otp = Helpers.generateOtp(
+        config.registeration.emailVerification.otpLength,
+      );
+
       if (email && config.registeration.emailVerification.required) {
-        const otp = Helpers.generateOtp(
-          config.registeration.emailVerification.otpLength,
-        );
         await User.findByIdAndUpdate(savedUser._id, {
           emailVerificationOTP: otp,
           verificationOTPExpiry:
@@ -78,11 +79,10 @@ export class AuthenticationService {
             config.registeration.emailVerification.expiryInMinutes * 60 * 1000,
         });
         await this.mailer.sendVerificationOTPEmail(email, otp);
-      }
-      if (phoneNumber && config.registeration.phoneVerification.required) {
-        const otp = Helpers.generateOtp(
-          config.registeration.emailVerification.otpLength,
-        );
+      } else if (
+        phoneNumber &&
+        config.registeration.phoneVerification.required
+      ) {
         await User.findByIdAndUpdate(savedUser._id, {
           phoneVerificationOTP: otp,
           verificationOTPExpiry:
@@ -90,8 +90,7 @@ export class AuthenticationService {
             config.registeration.emailVerification.expiryInMinutes * 60 * 1000,
         });
         await this.smsService.sendVerificationOTP(phoneNumber, otp);
-      }
-      if (
+      } else if (
         !config.registeration.emailVerification.required &&
         !config.registeration.phoneVerification.required
       ) {
@@ -116,7 +115,8 @@ export class AuthenticationService {
     email: string | null,
     phoneNumber: string | null,
     password: string,
-    otp: string | null,
+    smsOtp: string | null,
+    emailOtp: string | null,
   ) => {
     if (!username && !email && !phoneNumber) {
       throw new Error(Errors.USERNAME_OR_EMAIL_OR_PHONE_REQUIRED.message);
@@ -157,61 +157,19 @@ export class AuthenticationService {
         throw new Error(Errors.INACTIVATED_USER.message);
       }
 
-      console.log('User logged in successfully', otp);
-      if ((config.mfa.mfa_email || config.mfa.mfa_sms) && !otp) {
-        const otp = Helpers.generateOtp(config.mfa.otp.length);
-        const expiry = Date.now() + config.mfa.otp.expiryInMinutes * 60 * 1000;
-        if (config.mfa.mfa_email && user.email) {
-          await this.mailer.sendVerificationOTPEmail(user.email, otp);
-        }
-        if (config.mfa.mfa_sms && user.phoneNumber) {
-          await this.smsService.sendVerificationOTP(user.phoneNumber, otp);
-        }
-        console.log('OTP sent to user', otp);
-        user.mfa_otp = otp;
-        user.mfa_expiry = expiry;
-        await user.save();
-        return {
-          message:
-            'User found kindly verify your email or phone number to login',
-        };
-      } else if (config.mfa.mfa_email || (config.mfa.mfa_sms && otp)) {
-        if (user.mfa_enabled && user.mfa_otp !== otp)
-          throw new Error(Errors.INVALID_OTP.message);
-        if (user.mfa_expiry < Date.now())
-          throw new Error(Errors.OTP_EXPIRED.message);
-        user.mfa_otp = null;
-        user.mfa_expiry = 0;
-        await user.save();
-      }
+      console.log('User logged in successfully', emailOtp, smsOtp);
 
-      const accessToken = Helpers.generateToken(
-        {
-          id: user._id,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          admin: user.isAdmin,
-        },
-        config.authentication.accessToken.expiryInMinutes * 60,
-      );
+      const token = Helpers.generateToken({
+        id: user._id,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        admin: user.isAdmin,
+      });
 
-      const refreshToken = Helpers.generateToken(
-        {
-          id: user._id,
-          email: user.email,
-          phoneNumber: user.phoneNumber,
-          username: user.username,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          admin: user.isAdmin,
-        },
-        config.authentication.refreshToken.expiryInMinutes * 60,
-      );
-
-      return { accessToken, refreshToken, user };
+      return { token, user };
     } catch (e) {
       if (e instanceof Error) {
         throw new Error(e.message);
@@ -230,7 +188,6 @@ export class AuthenticationService {
       if (user.isEmailVerified) {
         throw new Error(Errors.EMAIL_ALREADY_VERIFIED.message);
       }
-
       if (user.emailVerificationOTP !== otp) {
         throw new Error(Errors.INVALID_OTP.message);
       }
@@ -238,8 +195,6 @@ export class AuthenticationService {
         throw new Error(Errors.OTP_EXPIRED.message);
       }
       user.isEmailVerified = true;
-      user.emailVerificationOTP = null;
-      user.emailVerificationOTPExpiry = 0;
       if (user.phoneNumber && user.isPhoneVerified) user.isActive = true;
       await user.save();
     } catch (e) {
@@ -270,8 +225,7 @@ export class AuthenticationService {
       }
       user.isPhoneVerified = true;
       if (user.email && user.isEmailVerified) user.isActive = true;
-      user.phoneVerificationOTP = null;
-      user.verificationOTPExpiry = 0;
+
       await user.save();
     } catch (e) {
       if (e instanceof Error) {
