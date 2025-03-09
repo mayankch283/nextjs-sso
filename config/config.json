@@ -1,7 +1,7 @@
 {
   "mfa": {
-    "mfa_email": false,
-    "mfa_sms": false,
+    "mfa_email": true,
+    "mfa_sms": true,
     "otp": {
       "length": 6,
       "expiryInMinutes": 20
@@ -17,7 +17,7 @@
   },
   "registeration": {
     "emailVerification": {
-      "required": false,
+      "required": true,
       "expiryInMinutes": 525600,
       "otpLength": 6
     },

@@ -215,7 +215,9 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json(
       {
         status: 'success',
-        message: 'Account verified successfully',
+        message: email
+          ? 'email verified successfully'
+          : 'phone number verified successfully',
       },
       { status: 200 },
     );
