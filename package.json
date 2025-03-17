@@ -5,10 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "prepare": "husky",
-    "lint-staged": "lint-staged"
+    "start": "next start"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
