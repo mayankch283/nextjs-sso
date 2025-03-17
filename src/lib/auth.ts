@@ -1,10 +1,11 @@
-// src/lib/auth.ts
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/userModel';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'; // Use environment variables in production
-
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecret100';
+if (!process.env.JWT_SECRET) {
+  console.warn('Warning: JWT_SECRET not set in environment variables');
+}
 export async function verifyPassword(plainPassword: string, hashedPassword: string): Promise<boolean> {
   return bcrypt.compare(plainPassword, hashedPassword);
 }
@@ -32,8 +33,18 @@ export function generateToken(user: any): string {
 
 export function verifyToken(token: string): any {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    if (!token) {
+      throw new Error('No token provided');
+    }
+    
+    // Remove 'Bearer ' if present
+    const tokenString = token.startsWith('Bearer ') ? token.slice(7) : token;
+    
+    return jwt.verify(tokenString, JWT_SECRET);
   } catch (error) {
-    return null;
+    if (error instanceof jwt.JsonWebTokenError) {
+      console.error('JWT Verification Error:', error.message);
+    }
+    throw error;
   }
 }
