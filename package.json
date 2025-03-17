@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "generate-users": "ts-node src/scripts/generateTestUsers.ts"
+
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
