@@ -25,7 +25,6 @@ export async function GET(request: NextRequest) {
   try {
     await dbConnect();
 
-    // Find the session
     const session = await SSOSession.findOne({
       sessionId,
       isComplete: false,
@@ -39,13 +38,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find the user
     const user = await User.findById(userId);
     if (!user) {
       return NextResponse.json({ message: 'User not found' }, { status: 404 });
     }
 
-    // Generate an SSO token
     const token = jwt.sign(
       {
         id: user._id,
@@ -56,19 +53,50 @@ export async function GET(request: NextRequest) {
       { expiresIn: '1h' },
     );
 
-    // Mark the session as complete
     session.userId = user._id;
     session.isComplete = true;
     await session.save();
 
-    // Redirect back to the service provider with the token
-    const redirectUrl = new URL(session.callbackUrl);
-    redirectUrl.searchParams.append('token', token);
-    if (session.state) {
-      redirectUrl.searchParams.append('state', session.state);
-    }
+    const domains = process.env.SSO_DOMAINS?.split(',') || ['localhost:3000', 'localhost:3001'];
 
-    return NextResponse.redirect(redirectUrl);
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <body>
+          <script>
+            let syncedCount = 0;
+            
+            window.onmessage = (event) => {
+              if (event.data.type === 'TOKEN_SYNCED') {
+                syncedCount++;
+                if (syncedCount === domains.length) {
+                  window.location.href = '${session.callbackUrl}?token=${token}${session.state ? `&state=${session.state}` : ''}';
+                }
+              }
+            };
+
+            domains.forEach(domain => {
+              const iframe = document.createElement('iframe');
+              iframe.style.display = 'none';
+              iframe.src = \`https://\${domain}/cookie-sync\`;
+              document.body.appendChild(iframe);
+              
+              iframe.onload = () => {
+                iframe.contentWindow.postMessage({
+                  type: 'SET_TOKEN',
+                  token: '${token}'
+                }, \`https://\${domain}\`);
+              };
+            });
+          </script>
+        </body>
+      </html>
+    `;
+
+    return new NextResponse(html, {
+      headers: { 'Content-Type': 'text/html' }
+    });
+
   } catch (error) {
     console.error('SSO callback error:', error);
     return NextResponse.json(
